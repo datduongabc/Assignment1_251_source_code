@@ -103,17 +103,38 @@ class HttpAdapter:
         resp = self.response
 
         # Handle the request
-        msg = conn.recv(1024).decode()
+        # msg = conn.recv(1024).decode()
+        msg = conn.recv(4096).decode()
         req.prepare(msg, routes)
+
+        auth_cookie = req.cookies.get('auth', 'false')
+
+        if auth_cookie != 'true':
+            if req.path != "/login":
+                response = resp.build_unauthorized()
+                conn.sendall(response)
+                conn.close()
+                return
 
         # Handle request hook
         if req.hook:
             print("[HttpAdapter] hook in route-path METHOD {} PATH {}".format(req.hook._route_path,req.hook._route_methods))
-            req.hook(headers = "bksysnet",body = "get in touch")
+            # req.hook(headers = "bksysnet",body = "get in touch")
             #
             # TODO: handle for App hook here
             #
-
+            logic_response = req.hook(headers = req.headers, body = req.body)
+        
+        if req.path == "/login" and req.method == "POST":
+            if logic_response:
+                req.headers['Set-Cookie'] = 'auth=true'
+                req.path = 'index.html'
+            else:
+                response = resp.build_unauthorized()
+                conn.sendall(response)
+                conn.close()
+                return
+        
         # Build response
         response = resp.build_response(req)
 

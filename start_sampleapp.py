@@ -35,7 +35,7 @@ PORT = 8000  # Default port
 app = WeApRous()
 
 @app.route('/login', methods=['POST'])
-def login(headers="guest", body="anonymous"):
+def login(headers, body):
     """
     Handle user login via POST request.
 
@@ -45,7 +45,18 @@ def login(headers="guest", body="anonymous"):
     :param headers (str): The request headers or user identifier.
     :param body (str): The request body or login payload.
     """
-    print "[SampleApp] Logging in {} to {}".format(headers, body)
+    print ("[SampleApp] Logging in {} to {}".format(headers, body))
+    
+    if body.get('username') == 'admin' and body.get('password') == 'password':
+        return {
+            'status_code': 200,
+            'body': 'Login successful'
+        }
+    else:
+        return {
+            'status_code': 401,
+            'body': 'Unauthorized'
+        }
 
 @app.route('/hello', methods=['PUT'])
 def hello(headers, body):
@@ -58,7 +69,7 @@ def hello(headers, body):
     :param headers (str): The request headers or user identifier.
     :param body (str): The request body or message payload.
     """
-    print "[SampleApp] ['PUT'] Hello in {} to {}".format(headers, body)
+    print ("[SampleApp] ['PUT'] Hello in {} to {}".format(headers, body))
 
 if __name__ == "__main__":
     # Parse command-line arguments to configure server IP and port

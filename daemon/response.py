@@ -1,15 +1,3 @@
-#
-# Copyright (C) 2025 pdnguyen of HCMC University of Technology VNU-HCM.
-# All rights reserved.
-# This file is part of the CO3093/CO3094 course.
-#
-# WeApRous release
-#
-# The authors hereby grant to Licensee personal permission to use
-# and modify the Licensed Source Code for the sole purpose of studying
-# while attending the course
-#
-
 """
 daemon.response
 ~~~~~~~~~~~~~~~~~
@@ -142,8 +130,8 @@ class Response():
             else:
                 handle_text_other(sub_type)
         elif main_type == 'image':
-            base_dir = BASE_DIR+"static/"
             self.headers['Content-Type']='image/{}'.format(sub_type)
+            base_dir = BASE_DIR+"static/"
         elif main_type == 'application':
             base_dir = BASE_DIR+"apps/"
             self.headers['Content-Type']='application/{}'.format(sub_type)
@@ -221,20 +209,24 @@ class Response():
         mime_type = self.get_mime_type(path)
         print("[Response] {} path {} mime_type {}".format(request.method, request.path, mime_type))
 
-        base_dir = ""
-
-        #If HTML, parse and serve embedded objects
-        if path.endswith('.html') or mime_type == 'text/html':
-            base_dir = self.prepare_content_type(mime_type = 'text/html')
-        elif mime_type == 'text/css':
-            base_dir = self.prepare_content_type(mime_type = 'text/css')
-        #
-        # TODO: add support objects
-        #
-        else:
+        try:
+            base_dir = self.prepare_content_type(mime_type)
+        except:
+            print("[Response] Unsupported MIME type: {}".format(mime_type))
             return self.build_notfound()
+        
+        if base_dir == "static/" and path.startswith("/static/"):
+            path = path[len("/static/"):]
+        elif base_dir == "apps/" and path.startswith("/apps/"):
+            path = path[len("/apps/"):]
 
         c_len, self._content = self.build_content(path, base_dir)
+        
+        if self.status_code == 404:
+             return self.build_notfound()
+        if self.status_code == 500:
+            return self.build_internal_error()
+        
         self._header = self.build_response_header(request)
 
         return self._header + self._content
@@ -261,4 +253,16 @@ class Response():
                 "Connection: close\r\n"
                 "\r\n"
                 "401 Unauthorized"
+            ).encode('utf-8')
+    
+    def build_internal_error(self):
+        return (
+                "HTTP/1.1 500 Internal Server Error\r\n"
+                "Accept-Ranges: bytes\r\n"
+                "Content-Type: text/plain\r\n"
+                "Content-Length: 25\r\n"
+                "Cache-Control: max-age=86000\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+                "500 Internal Server Error"
             ).encode('utf-8')

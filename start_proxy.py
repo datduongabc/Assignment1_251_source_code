@@ -1,19 +1,3 @@
-# reverse_proxy.py
-#
-# Copyright (C) 2025 pdnguyen of HCMC University of Technology VNU-HCM.
-# All rights reserved.
-# This file is part of the CO3093/CO3094 course,
-# and is released under the "MIT License Agreement". Please see the LICENSE
-# file that should have been included as part of this package.
-#
-# WeApRous release
-#
-# The authors hereby grant to Licensee personal permission to use
-# and modify the Licensed Source Code for the sole purpose of studying
-# while attending the course
-#
-
-
 """
 start_proxy
 ~~~~~~~~~~~~~~~~~
@@ -39,14 +23,11 @@ import socket
 import threading
 import argparse
 import re
-# from urlparse import urlparse
 from urllib.parse import urlparse
 from collections import defaultdict
-
 from daemon import create_proxy
 
 PROXY_PORT = 8080
-
 
 def parse_virtual_hosts(config_file):
     """

@@ -1,15 +1,3 @@
-#
-# Copyright (C) 2025 pdnguyen of HCMC University of Technology VNU-HCM.
-# All rights reserved.
-# This file is part of the CO3093/CO3094 course.
-#
-# WeApRous release
-#
-# The authors hereby grant to Licensee personal permission to use
-# and modify the Licensed Source Code for the sole purpose of studying
-# while attending the course
-#
-
 """
 daemon.httpadapter
 ~~~~~~~~~~~~~~~~~
@@ -109,13 +97,13 @@ class HttpAdapter:
 
         auth_cookie = req.cookies.get('auth', 'false')
 
-        if auth_cookie != 'true':
-            if req.path != "/login":
+        if auth_cookie != 'true' and req.path != "/login":
                 response = resp.build_unauthorized()
                 conn.sendall(response)
                 conn.close()
                 return
 
+        logic_response = False
         # Handle request hook
         if req.hook:
             print("[HttpAdapter] hook in route-path METHOD {} PATH {}".format(req.hook._route_path,req.hook._route_methods))
@@ -127,8 +115,8 @@ class HttpAdapter:
         
         if req.path == "/login" and req.method == "POST":
             if logic_response:
-                req.headers['Set-Cookie'] = 'auth=true'
-                req.path = 'index.html'
+                resp.headers['Set-Cookie'] = 'auth=true'
+                req.path = '/index.html'
             else:
                 response = resp.build_unauthorized()
                 conn.sendall(response)

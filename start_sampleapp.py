@@ -1,18 +1,3 @@
-#
-# Copyright (C) 2025 pdnguyen of HCMC University of Technology VNU-HCM.
-# All rights reserved.
-# This file is part of the CO3093/CO3094 course,
-# and is released under the "MIT License Agreement". Please see the LICENSE
-# file that should have been included as part of this package.
-#
-# WeApRous release
-#
-# The authors hereby grant to Licensee personal permission to use
-# and modify the Licensed Source Code for the sole purpose of studying
-# while attending the course
-#
-
-
 """
 start_sampleapp
 ~~~~~~~~~~~~~~~~~
@@ -27,7 +12,6 @@ and can be configured via command-line arguments.
 import json
 import socket
 import argparse
-
 from daemon.weaprous import WeApRous
 
 PORT = 8000  # Default port
@@ -48,15 +32,11 @@ def login(headers, body):
     print ("[SampleApp] Logging in {} to {}".format(headers, body))
     
     if body.get('username') == 'admin' and body.get('password') == 'password':
-        return {
-            'status_code': 200,
-            'body': 'Login successful'
-        }
+        print("[SampleApp] Login successful")
+        return True
     else:
-        return {
-            'status_code': 401,
-            'body': 'Unauthorized'
-        }
+        print("[SampleApp] Login failed: Unauthorized")
+        return False
 
 @app.route('/hello', methods=['PUT'])
 def hello(headers, body):

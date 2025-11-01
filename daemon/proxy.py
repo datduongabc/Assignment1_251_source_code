@@ -1,15 +1,3 @@
-#
-# Copyright (C) 2025 pdnguyen of HCMC University of Technology VNU-HCM.
-# All rights reserved.
-# This file is part of the CO3093/CO3094 course.
-#
-# WeApRous release
-#
-# The authors hereby grant to Licensee personal permission to use
-# and modify the Licensed Source Code for the sole purpose of studying
-# while attending the course
-#
-
 """
 daemon.proxy
 ~~~~~~~~~~~~~~~~~
@@ -194,11 +182,11 @@ def run_proxy(ip, port, routes):
         print("[Proxy] Listening on IP {} port {}".format(ip,port))
         while True:
             conn, addr = proxy.accept()
-            #
-            #  TODO: implement the step of the client incomping connection
-            #        using multi-thread programming with the
-            #        provided handle_client routine
-            #
+            #   TODO: implement the step of the client incomping connection
+            #   using multi-thread programming with the
+            #   provided handle_client routine
+            client_thread = threading.Thread(target=handle_client, args=(ip, port, conn, addr, routes))
+            client_thread.start()
     except socket.error as e:
       print("Socket error: {}".format(e))
 

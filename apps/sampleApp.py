@@ -1,8 +1,6 @@
 # Example usage
 import json
-
 from daemon import 
-
 
 def create_sampleapp():
 app = WeApRous()
@@ -22,4 +20,3 @@ def echo(body):
         return {"received": data}
     except json.JSONDecodeError:
         return {"error": "Invalid JSON"}
-

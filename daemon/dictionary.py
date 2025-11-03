@@ -1,16 +1,13 @@
 from collections.abc import MutableMapping
 
 class CaseInsensitiveDict(MutableMapping):
-    """The :class:`CaseInsensitiveDict<MutableMapping>` object, which 
-    contains a custom behavior of MutuableMapping.
+    """The :class:`CaseInsensitiveDict<MutableMapping>` object, which contains a custom behavior of MutableMapping.
 
     Usage::
-
       >>> import tools
       >>> word = CaseInsensitiveDict(status_code='404', msg="Not found")
       >>> code = word['status_code']
-      >>> code 
-      404
+      >>> code 404
 
       >>> msg = word['msg']
       >>> s.send(r)
@@ -18,7 +15,6 @@ class CaseInsensitiveDict(MutableMapping):
 
       >>> print(word)
       {'status_code': '404', 'msg': 'Not found'}
-
     """
 
     def __init__(self, *args, **kwargs):

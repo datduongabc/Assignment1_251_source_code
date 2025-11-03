@@ -1,11 +1,9 @@
 """
 daemon.backend
-~~~~~~~~~~~~~~~~~
 
 This module provides a backend object to manage and persist backend daemon. 
 It implements a basic backend server using Python's socket and threading libraries.
-It supports handling multiple client connections concurrently and routing requests using a
-custom HTTP adapter.
+It supports handling multiple client connections concurrently and routing requests using a custom HTTP adapter.
 
 Requirements:
 --------------
@@ -14,7 +12,6 @@ Requirements:
 - response: response utilities.
 - httpadapter: the class for handling HTTP requests.
 - CaseInsensitiveDict: provides dictionary for managing headers or routes.
-
 
 Notes:
 ------
@@ -25,15 +22,11 @@ Notes:
 Usage Example:
 --------------
 >>> create_backend("127.0.0.1", 9000, routes={})
-
 """
 
 import socket
 import threading
-import argparse
-from .response import *
 from .httpadapter import HttpAdapter
-from .dictionary import CaseInsensitiveDict
 
 def handle_client(ip, port, conn, addr, routes):
     """
@@ -46,16 +39,12 @@ def handle_client(ip, port, conn, addr, routes):
     :param routes (dict): Dictionary of route handlers.
     """
     daemon = HttpAdapter(ip, port, conn, addr, routes)
-
-    # Handle client
     daemon.handle_client(conn, addr, routes)
 
 def run_backend(ip, port, routes):
     """
-    Starts the backend server, binds to the specified IP and port, and listens for incoming
-    connections. Each connection is handled in a separate thread. The backend accepts incoming
-    connections and spawns a thread for each client.
-
+    Starts the backend server, binds to the specified IP and port, and listens for incoming connections.
+    Each connection is handled in a separate thread. The backend accepts incoming connections and spawns a thread for each client.
 
     :param ip (str): IP address to bind the server.
     :param port (int): Port number to listen on.
@@ -72,11 +61,6 @@ def run_backend(ip, port, routes):
 
         while True:
             conn, addr = server.accept()
-            #
-            #  TODO: implement the step of the client incomping connection
-            #        using multi-thread programming with the
-            #        provided handle_client routine
-            #
             client_thread = threading.Thread(target=handle_client, args=(ip, port, conn, addr, routes))
             client_thread.daemon = True
             client_thread.start()
@@ -91,5 +75,4 @@ def create_backend(ip, port, routes={}):
     :param port (int): Port number to listen on.
     :param routes (dict, optional): Dictionary of route handlers. Defaults to empty dict.
     """
-
     run_backend(ip, port, routes)

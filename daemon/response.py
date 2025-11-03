@@ -1,10 +1,9 @@
 """
 daemon.response
-~~~~~~~~~~~~~~~~~
 
-This module provides a :class: `Response <Response>` object to manage and persist 
-response settings (cookies, auth, proxies), and to construct HTTP responses
-based on incoming requests. 
+This module provides a :class: `Response <Response>` object to manage and
+persist response settings (cookies, auth, proxies)
+and to construct HTTP responses based on incoming requests.
 
 The current version supports MIME type detection, content loading and header formatting
 """
@@ -12,6 +11,7 @@ import datetime
 import os
 import mimetypes
 from .dictionary import CaseInsensitiveDict
+import json
 
 BASE_DIR = ""
 
@@ -46,24 +46,6 @@ class Response():
       <Response>
     """
 
-    __attrs__ = [
-        "_content",
-        "_header",
-        "status_code",
-        "method",
-        "headers",
-        "url",
-        "history",
-        "encoding",
-        "reason",
-        "cookies",
-        "elapsed",
-        "request",
-        "body",
-        "reason",
-    ]
-
-
     def __init__(self, request=None):
         """
         Initializes a new :class:`Response <Response>` object.
@@ -74,38 +56,26 @@ class Response():
         self._content = False
         self._content_consumed = False
         self._next = None
-
-        #: Integer Code of responded HTTP Status, e.g. 404 or 200.
+        #: Integer Code of responded HTTP Status
         self.status_code = None
-
         #: Case-insensitive Dictionary of Response Headers.
-        #: For example, ``headers['content-type']`` will return the
-        #: value of a ``'Content-Type'`` response header.
         self.headers = {}
-
         #: URL location of Response.
         self.url = None
-
         #: Encoding to decode with when accessing response text.
         self.encoding = None
-
         #: A list of :class:`Response <Response>` objects from
         #: the history of the Request.
         self.history = []
-
         #: Textual reason of responded HTTP Status, e.g. "Not Found" or "OK".
         self.reason = None
-
         #: A of Cookies the response headers.
         self.cookies = CaseInsensitiveDict()
-
         #: The amount of time elapsed between sending the request
         self.elapsed = datetime.timedelta(0)
-
         #: The :class:`PreparedRequest <PreparedRequest>` object to which this
         #: is a response.
         self.request = None
-
 
     def get_mime_type(self, path):
         try:
@@ -117,65 +87,45 @@ class Response():
 
     def prepare_content_type(self, mime_type='text/html'):        
         base_dir = ""
-
-        # Processing mime_type based on main_type and sub_type
-        main_type, sub_type = mime_type.split('/', 1)
-        print("[Response] processing MIME main_type={} sub_type={}".format(main_type,sub_type))
+        try:
+            main_type, sub_type = mime_type.split('/', 1)
+        except ValueError:
+            raise ValueError(f"Invalid MIME type: {mime_type}")
         if main_type == 'text':
-            self.headers['Content-Type']='text/{}'.format(sub_type)
-            if sub_type == 'plain' or sub_type == 'css':
+            if sub_type == 'css':
+                self.headers['Content-Type'] = 'text/css'
                 base_dir = BASE_DIR+"static/"
             elif sub_type == 'html':
+                self.headers['Content-Type'] = 'text/html'
                 base_dir = BASE_DIR+"www/"
             else:
-                handle_text_other(sub_type)
+                raise ValueError(f"Unsupported text subtype: {sub_type}")
         elif main_type == 'image':
-            self.headers['Content-Type']='image/{}'.format(sub_type)
-            base_dir = BASE_DIR+"static/"
-        elif main_type == 'application':
-            base_dir = BASE_DIR+"apps/"
-            self.headers['Content-Type']='application/{}'.format(sub_type)
-        #
-        #  TODO: process other mime_type
-        #        application/xml       
-        #        application/zip
-        #        ...
-        #        text/csv
-        #        text/xml
-        #        ...
-        #        video/mp4 
-        #        video/mpeg
-        #        ...
-        #
+            if sub_type in ['png', 'jpeg', 'vnd.microsoft.icon', 'x-icon']:
+                self.headers['Content-Type'] = mime_type
+                base_dir = BASE_DIR+"static/"
+            else:
+                raise ValueError(f"Unsupported image subtype: {sub_type}")
         else:
-            raise ValueError("Invalid MIME type: main_type={} sub_type={}".format(main_type,sub_type))
-
+            raise ValueError(f"Unsupported main MIME type: {main_type}")
         return base_dir
-
 
     def build_content(self, path, base_dir):
         filepath = os.path.join(base_dir, path.lstrip('/'))
 
         print("[Response] serving the object at location {}".format(filepath))
-            #
-            #  TODO: implement the step of fetch the object file
-            #        store in the return value of content
-            #
         try:
             with open(filepath, 'rb') as f:
                 content = f.read()
             return len(content), content
         except FileNotFoundError:
             print("[Response] File not found: {}".format(filepath))
-            content = b"404 Not Found"
             self.status_code = 404
-            return len(content), content
+            return 0, b""
         except Exception as e:
-            print("[Response] Error loading file {}: {}".format(filepath, e))
-            content = b"500 Internal Server Error"
+            print("[Response] Server error {}: {}".format(filepath, e))
             self.status_code = 500
-        return len(content), content
-
+            return 0, b""
 
     def build_response_header(self, request):
         if self.status_code is None:
@@ -202,7 +152,17 @@ class Response():
             
         header_text = status_line + header_text + "\r\n"
         return header_text.encode('utf-8')
-
+    
+    def build_json_response(self, data):
+        try:
+            # Convert dictionary to JSON string and encode to bytes
+            self._content = json.dumps(data).encode('utf-8')
+            self.headers['Content-Type'] = 'application/json'
+            self._header = self.build_response_header(request=None)
+            return self._header + self._content
+        except Exception:
+            return self.build_internal_error()
+        
     def build_response(self, request):
         path = request.path
 
@@ -217,8 +177,6 @@ class Response():
         
         if base_dir == "static/" and path.startswith("/static/"):
             path = path[len("/static/"):]
-        elif base_dir == "apps/" and path.startswith("/apps/"):
-            path = path[len("/apps/"):]
 
         c_len, self._content = self.build_content(path, base_dir)
         
@@ -231,38 +189,29 @@ class Response():
 
         return self._header + self._content
 
-    def build_notfound(self):
-        return (
-                "HTTP/1.1 404 Not Found\r\n"
-                "Accept-Ranges: bytes\r\n"
-                "Content-Type: text/html\r\n"
-                "Content-Length: 13\r\n"
-                "Cache-Control: max-age=86000\r\n"
-                "Connection: close\r\n"
-                "\r\n"
-                "404 Not Found"
-            ).encode('utf-8')
-
     def build_unauthorized(self):
         return (
-                "HTTP/1.1 401 Unauthorized\r\n"
-                "Accept-Ranges: bytes\r\n"
-                "Content-Type: text/plain\r\n"
-                "Content-Length: 16\r\n"
-                "Cache-Control: max-age=86000\r\n"
-                "Connection: close\r\n"
-                "\r\n"
-                "401 Unauthorized"
-            ).encode('utf-8')
+                b"HTTP/1.1 401 Unauthorized\r\n"
+                b"Content-Type: text/plain\r\n"
+                b"Content-Length: 16\r\n"
+                b"Connection: close\r\n\r\n"
+                b"401 Unauthorized"
+            )
+
+    def build_notfound(self):
+        return (
+                b"HTTP/1.1 404 Not Found\r\n"
+                b"Content-Type: text/html\r\n"
+                b"Content-Length: 13\r\n"
+                b"Connection: close\r\n\r\n"
+                b"404 Not Found"
+            )
     
     def build_internal_error(self):
         return (
-                "HTTP/1.1 500 Internal Server Error\r\n"
-                "Accept-Ranges: bytes\r\n"
-                "Content-Type: text/plain\r\n"
-                "Content-Length: 25\r\n"
-                "Cache-Control: max-age=86000\r\n"
-                "Connection: close\r\n"
-                "\r\n"
-                "500 Internal Server Error"
-            ).encode('utf-8')
+                b"HTTP/1.1 500 Internal Server Error\r\n"
+                b"Content-Type: text/plain\r\n"
+                b"Content-Length: 25\r\n"
+                b"Connection: close\r\n\r\n"
+                b"500 Internal Server Error"
+            )

@@ -1,11 +1,8 @@
 """
 daemon.request
-~~~~~~~~~~~~~~~~~
 
-This module provides a Request object to manage and persist 
-request settings (cookies, auth, proxies).
+This module provides a Request object to manage and persist request settings (cookies, auth, proxies).
 """
-from wsgiref import headers
 from .dictionary import CaseInsensitiveDict
 
 class Request():
@@ -25,17 +22,6 @@ class Request():
       >>> r
       <Request>
     """
-    __attrs__ = [
-        "method",
-        "url",
-        "headers",
-        "body",
-        "reason",
-        "cookies",
-        "body",
-        "routes",
-        "hook",
-    ]
 
     def __init__(self):
         #: HTTP verb to send to the server.
@@ -58,23 +44,23 @@ class Request():
     def extract_request_line(self, request):
         try:
             lines = request.splitlines()
+            if not lines:
+                return None, None, None
             first_line = lines[0]
             method, path, version = first_line.split()
-
             if path == '/':
                 path = '/index.html'
         except Exception:
-            return None, None
-
+            return None, None, None
         return method, path, version
              
     def prepare_headers(self, request):
         lines = request.split('\r\n')
-        headers = {}
+        headers = CaseInsensitiveDict()
         for line in lines[1:]:
             if ': ' in line:
                 key, val = line.split(': ', 1)
-                headers[key.lower()] = val
+                headers[key] = val
         return headers
 
     def prepare(self, request, routes=None):
@@ -83,18 +69,14 @@ class Request():
         except ValueError:
             header_text = request
             body_text = ""
-
         # Prepare the request line from the request header
         self.method, self.path, self.version = self.extract_request_line(header_text)
+        if not self.method:
+            self.headers = {}
+            self.body = {}
+            self.cookies = {}
+            return
         print("[Request] {} path {} version {}".format(self.method, self.path, self.version))
-
-        #
-        # @bksysnet Preapring the webapp hook with WeApRous instance
-        # The default behaviour with HTTP server is empty routed
-        #
-        # TODO manage the webapp hook in this mounting point
-        #
-
         self.headers = self.prepare_headers(header_text)
 
         def parse_body(body_str):
@@ -120,45 +102,8 @@ class Request():
                     key, val = pair.strip().split('=', 1)
                     cookies[key] = val
             return cookies
-        
         cookies_str = self.headers.get('cookie', '')
         self.cookies = parse_cookies(cookies_str)
-
         if not routes == {}:
             self.routes = routes
             self.hook = routes.get((self.method, self.path))
-            #
-            # self.hook manipulation goes here
-            # ...
-            #
-            #  TODO: implement the cookie function here
-            #        by parsing the header
-        return
-
-    def prepare_body(self, data, files, json=None):
-        self.prepare_content_length(self.body)
-        self.body = body
-        #
-        # TODO prepare the request authentication
-        #
-	# self.auth = ...
-        return
-
-    def prepare_content_length(self, body):
-        self.headers["Content-Length"] = "0"
-        #
-        # TODO prepare the request authentication
-        #
-	# self.auth = ...
-        return
-
-
-    def prepare_auth(self, auth, url=""):
-        #
-        # TODO prepare the request authentication
-        #
-	# self.auth = ...
-        return
-
-    def prepare_cookies(self, cookies):
-        self.headers["Cookie"] = cookies

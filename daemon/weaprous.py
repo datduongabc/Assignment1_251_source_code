@@ -1,6 +1,5 @@
 """
-deamon.weaproute
-~~~~~~~~~~~~~~~~~
+daemon.weaproute
 
 This module provides a WeApRous object to deploy RESTful url web app with routing
 """
@@ -82,7 +81,5 @@ class WeApRous:
         :raise: Error if IP or port has not been configured.
         """
         if not self.ip or not self.port:
-            print("Rous app need to preapre address"
-                  "by calling app.prepare_address(ip,port)")
-
+            print("Rous app need to prepare address by calling app.prepare_address(ip,port)")
         create_backend(self.ip, self.port, self.routes)

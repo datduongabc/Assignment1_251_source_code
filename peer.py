@@ -11,55 +11,70 @@ import datetime
 class ChatUI:
     def __init__(self, root, peer_logic, ui_queue):
         self.root = root
-        # Reference to P2P logic (for sending messages)
         self.peer = peer_logic
-        # Queue to receive messages
         self.ui_queue = ui_queue
         self.root.title(f"Chat P2P - {self.peer.username} ({self.peer.my_host}:{self.peer.my_port})")
-        self.root.geometry("800x600")
+        self.root.geometry("1280x720")
         
-        # 1. Message display frame (scrollable) - takes most space but leaves room for input
-        self.message_frame = tk.Frame(root, bg="white")
-        self.msg_list = scrolledtext.ScrolledText(self.message_frame, wrap=tk.WORD, state='disabled', height=20)
+        # 1. Khung channel
+        self.left_frame = tk.Frame(root, width=150)
+        self.left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
+        
+        self.channel_label = tk.Label(self.left_frame, text="Các Kênh:")
+        self.channel_label.pack()
+        
+        self.channel_list = tk.Listbox(self.left_frame, height=15)
+        self.channel_list.pack(fill=tk.BOTH, expand=True)
+        self.channel_list.bind('<<ListboxSelect>>', self.on_channel_select)
+        
+        # 2. Khung chat
+        self.right_frame = tk.Frame(root)
+        self.right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        # 3. Khung tin nhắn
+        self.message_frame = tk.Frame(self.right_frame)
+        self.msg_list = scrolledtext.ScrolledText(self.message_frame, wrap=tk.WORD, state='disabled')
         self.msg_list.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        self.message_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.message_frame.pack(fill=tk.BOTH, expand=True)
         
-        # 2. Input frame - fixed height at bottom
-        self.input_frame = tk.Frame(root, bg="lightgray", height=60)
-        self.input_frame.pack_propagate(False)  # Prevent frame from shrinking
+        self.msg_list.tag_config('me', foreground='blue', justify='right')
+        self.msg_list.tag_config('peer', foreground='green')
+        self.msg_list.tag_config('system', foreground='#777', font=('Arial', 9, 'italic'))
+        self.msg_list.tag_config('error', foreground='red', font=('Arial', 9, 'bold'))
+
+        # 4. Khung Input
+        self.input_frame = tk.Frame(self.right_frame)
+        self.input_entry = tk.Entry(self.input_frame, width=40, font=("Arial", 11))
+
+        self.input_entry.bind("<Return>", self.on_send_message) 
+        self.send_button = tk.Button(self.input_frame, text="Gửi", command=self.on_send_message)
+        self.input_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10, pady=10)
+        self.send_button.pack(side=tk.RIGHT, padx=10, pady=10)
+        self.input_frame.pack(fill=tk.X)
         
-        self.input_entry = tk.Entry(self.input_frame, font=("Arial", 12), width=50)
-        self.input_entry.bind("<Return>", self.on_send_message)
-        self.send_button = tk.Button(self.input_frame, text="Gửi", command=self.on_send_message, 
-                                   font=("Arial", 10), bg="lightblue", width=8)
-        
-        self.input_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10, pady=15)
-        self.send_button.pack(side=tk.RIGHT, padx=10, pady=15)
-        self.input_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
-        # 3. Ask to close the window
+        # 5. Logic khởi động
+        self.active_channel = '#general'
+        self.update_channel_list()
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        # 4. Set focus to input entry
-        self.input_entry.focus_set()
-        # 5. Start checking the queue
         self.check_queue()
+        self.input_entry.focus_set()
     
-    def on_send_message(self, event=None):
+    def on_send_message(self):
         """
-        Called when the 'Send' button is pressed or Enter is pressed.
+        Called when the 'Send' button is pressed or "Enter" is pressed.
         """
         message = self.input_entry.get().strip()
         if message:
             try:
-                self.peer.broadcast_message(message)
+                self.peer.broadcast_message(message, self.active_channel)
                 self.show_message(f"You: {message}", 'me')
                 self.input_entry.delete(0, tk.END)
                 self.input_entry.focus_set()  # Keep focus on input
             except Exception:
                 self.show_message(f"Error sending message", 'error')
         else:
-            # If empty message, just refocus
             self.input_entry.focus_set()
-        return "break"  # Prevent default event handling
+        return "break"
             
     def show_message(self, message, tag='peer'):
         """
@@ -71,7 +86,6 @@ class ChatUI:
         formatted_message = f"[{timestamp}] {message}\n"
         self.msg_list.insert(tk.END, formatted_message, (tag,))
         
-        # Configure tag colors
         if tag == 'me':
             self.msg_list.tag_config('me', foreground='blue')
         elif tag == 'peer':
@@ -89,7 +103,14 @@ class ChatUI:
         """
         try:
             message = self.ui_queue.get_nowait()
-            self.show_message(message, 'peer')
+            # Check if the message belongs to the selected channel
+            if '|' in message:
+                channel, content = message.split('|', 1)
+                if channel == self.active_channel:
+                    self.show_message(content, 'peer')
+            else:
+                # Tin nhắn hệ thống hoặc lỗi
+                self.show_message(message, 'peer')
         except queue.Empty:
             pass
         self.root.after(100, self.check_queue)
@@ -101,6 +122,28 @@ class ChatUI:
         if messagebox.askokcancel("Exit", "Are you sure you want to exit?"):
             self.peer.shutdown()
             self.root.destroy()
+            
+    def update_channel_list(self):
+        """
+        Update the channel list.
+        """
+        self.channel_list.delete(0, tk.END)
+        for channel in self.peer.subscribed_channels:
+            self.channel_list.insert(tk.END, channel)
+            if channel == self.active_channel:
+                self.channel_list.selection_set(tk.END)
+
+    def on_channel_select(self):
+        """
+        Called when a user clicks on a channel.
+        """
+        try:
+            selected_index = self.channel_list.curselection()[0]
+            self.active_channel = self.channel_list.get(selected_index)
+            self.root.title(f"Chat P2P - {self.peer.username} ({self.active_channel})")
+            self.ui_queue.put(f"[System] Switched to channel {self.active_channel}")
+        except IndexError:
+            pass
     
 class Peer:
     def __init__(self, tracker_url, my_host, my_port, username, ui_queue):
@@ -110,6 +153,8 @@ class Peer:
         self.username = username
         # Hàng đợi để gửi tin nhắn đến UI
         self.ui_queue = ui_queue
+        # Hardcode các kênh có sẵn
+        self.subscribed_channels = ['#general', '#mmt', '#cnpm', '#random']
         self.running = True
         # Danh sách chứa các socket đến các peer khác
         self.connections = []
@@ -192,8 +237,13 @@ class Peer:
                 try:
                     message = json.loads(data.decode('utf-8'))
                     if message.get('type') == 'message':
-                        formatted_msg = f"[{message.get('username')}]: {message.get('content')}"
-                        self.ui_queue.put(formatted_msg)
+                        channel_id = message.get('channels')
+                        
+                        if channel_id in self.subscribed_channels:
+                            formatted_msg = f"{channel_id}|[{message.get('username')}]: {message.get('content')}"
+                            self.ui_queue.put(formatted_msg)
+                        else:
+                            pass
                 except json.JSONDecodeError:
                     pass
         except Exception:
@@ -201,9 +251,10 @@ class Peer:
         self.remove_connection(conn, addr)
 
     # Send message to all connected peers.
-    def broadcast_message(self, message_content):
+    def broadcast_message(self, message_content, channel_id='#general'):
         message_packet = {
             "type": "message",
+            "channels": channel_id,
             "username": self.username,
             "content": message_content
         }
@@ -300,8 +351,8 @@ if __name__ == "__main__":
     MY_HOST = "0.0.0.0"
     temp_root = tk.Tk()
     temp_root.withdraw()
-    MY_PORT = simpledialog.askstring("Port", "Nhập port bạn muốn chạy:", parent=temp_root)
-    MY_USERNAME = simpledialog.askstring("Name", "Nhập tên của bạn:", parent=temp_root)
+    MY_PORT = simpledialog.askstring("Port", "Port:", parent=temp_root)
+    MY_USERNAME = simpledialog.askstring("Name", "Name:", parent=temp_root)
     temp_root.destroy()
     
     if not MY_PORT or not MY_USERNAME:
@@ -315,4 +366,3 @@ if __name__ == "__main__":
         # Ensure the input entry gets focus after window is fully loaded
         root.after(100, lambda: app_ui.input_entry.focus_set())
         root.mainloop()
-        print("[Peer] Chương trình kết thúc.")

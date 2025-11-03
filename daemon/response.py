@@ -91,21 +91,26 @@ class Response():
             main_type, sub_type = mime_type.split('/', 1)
         except ValueError:
             raise ValueError(f"Invalid MIME type: {mime_type}")
+        self.headers['Content-Type'] = mime_type
         if main_type == 'text':
-            if sub_type == 'css':
-                self.headers['Content-Type'] = 'text/css'
-                base_dir = BASE_DIR+"static/"
-            elif sub_type == 'html':
-                self.headers['Content-Type'] = 'text/html'
+            if sub_type == 'html':
                 base_dir = BASE_DIR+"www/"
+            elif sub_type == 'css':
+                base_dir = BASE_DIR+"static/css/"
             else:
                 raise ValueError(f"Unsupported text subtype: {sub_type}")
         elif main_type == 'image':
             if sub_type in ['png', 'jpeg', 'vnd.microsoft.icon', 'x-icon']:
-                self.headers['Content-Type'] = mime_type
-                base_dir = BASE_DIR+"static/"
+                base_dir = BASE_DIR+"static/images/"
             else:
                 raise ValueError(f"Unsupported image subtype: {sub_type}")
+        elif main_type == 'application':
+            if sub_type == 'x-x509-ca-cert':
+                base_dir = BASE_DIR+"cert/"
+            elif sub_type == 'javascript':
+                base_dir = BASE_DIR+"static/js/"
+            else:
+                base_dir = BASE_DIR+"apps/"
         else:
             raise ValueError(f"Unsupported main MIME type: {main_type}")
         return base_dir
@@ -152,6 +157,24 @@ class Response():
             
         header_text = status_line + header_text + "\r\n"
         return header_text.encode('utf-8')
+        
+    def build_response(self, request):
+        path = request.path
+        mime_type = self.get_mime_type(path)
+        print("[Response] {} path {} mime_type {}".format(request.method, request.path, mime_type))
+        try:
+            base_dir = self.prepare_content_type(mime_type)
+        except:
+            print("[Response] Unsupported MIME type: {}".format(mime_type))
+            return self.build_notfound()
+        file_name = os.path.basename(path)
+        c_len, self._content = self.build_content(file_name, base_dir)
+        if self.status_code == 404:
+             return self.build_notfound()
+        if self.status_code == 500:
+            return self.build_internal_error()
+        self._header = self.build_response_header(request)
+        return self._header + self._content
     
     def build_json_response(self, data):
         try:
@@ -162,32 +185,6 @@ class Response():
             return self._header + self._content
         except Exception:
             return self.build_internal_error()
-        
-    def build_response(self, request):
-        path = request.path
-
-        mime_type = self.get_mime_type(path)
-        print("[Response] {} path {} mime_type {}".format(request.method, request.path, mime_type))
-
-        try:
-            base_dir = self.prepare_content_type(mime_type)
-        except:
-            print("[Response] Unsupported MIME type: {}".format(mime_type))
-            return self.build_notfound()
-        
-        if base_dir == "static/" and path.startswith("/static/"):
-            path = path[len("/static/"):]
-
-        c_len, self._content = self.build_content(path, base_dir)
-        
-        if self.status_code == 404:
-             return self.build_notfound()
-        if self.status_code == 500:
-            return self.build_internal_error()
-        
-        self._header = self.build_response_header(request)
-
-        return self._header + self._content
 
     def build_unauthorized(self):
         return (

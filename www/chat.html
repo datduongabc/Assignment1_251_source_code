@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hybrid Chat UI (Purple)</title>
+    <link rel="stylesheet" href="./css/chat.css" />
+  </head>
+  <body>
+    <div id="app" class="app">
+      <!-- Left: Peer list -->
+      <aside class="sidebar peers">
+        <header class="sidebar__header">
+          <h2>Peers</h2>
+          <button
+            id="refreshPeers"
+            class="icon-btn"
+            aria-label="Refresh peers"
+            title="Refresh peers"
+          >
+            ⟳
+          </button>
+        </header>
+        <div class="sidebar__search">
+          <input id="peerSearch" type="text" placeholder="Tìm peer..." />
+        </div>
+        <ul id="peerList" class="list"></ul>
+      </aside>
+
+      <!-- Center: Chat window -->
+      <main class="chat">
+        <header class="chat__header">
+          <div class="chat__title">
+            <div id="chatTitle" class="chat__name"># general</div>
+            <div id="chatSubtitle" class="chat__subtitle">
+              Broadcast trong kênh
+            </div>
+          </div>
+          <div class="chat__actions">
+            <button id="simulateBtn" class="ghost-btn" title="Giả lập tin đến">
+              Simulate
+            </button>
+          </div>
+        </header>
+
+        <section
+          id="messageList"
+          class="chat__messages"
+          aria-live="polite"
+        ></section>
+
+        <form id="composer" class="composer" autocomplete="off">
+          <div class="composer__left">
+            <textarea
+              id="messageInput"
+              rows="1"
+              placeholder="Nhập tin nhắn... (Shift + Enter để xuống dòng)"
+            ></textarea>
+          </div>
+          <div class="composer__right">
+            <div id="sendTarget" class="composer__target" title="Đích gửi">
+              Kênh
+            </div>
+            <button id="sendBtn" type="submit-info" class="accent-btn">
+              Gửi
+            </button>
+          </div>
+        </form>
+      </main>
+
+      <!-- Right: Channel list -->
+      <aside class="sidebar channels">
+        <header class="sidebar__header">
+          <h2>Channels</h2>
+          <button
+            id="addChannel"
+            class="icon-btn"
+            aria-label="Add channel"
+            title="Add channel"
+          >
+            ＋
+          </button>
+        </header>
+        <div class="sidebar__search">
+          <input id="channelSearch" type="text" placeholder="Tìm channel..." />
+        </div>
+        <ul id="channelList" class="list"></ul>
+      </aside>
+    </div>
+
+    <script src="./js/chat.js"></script>
+  </body>
+</html>

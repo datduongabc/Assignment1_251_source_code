@@ -1,315 +1,135 @@
-:root {
-  --bg: #0f0a1f;
-  --panel: #17112b;
-  --panel-2: #1f163d;
-  --border: #2a1f52;
-  --text: #e9e7f5;
-  --muted: #b8b2d9;
-  --accent: #8b5cf6; /* violet-500 */
-  --accent-2: #7c3aed; /* violet-600 */
-  --success: #22c55e;
-  --danger: #ef4444;
-  --badge: #312052;
-  --shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-}
-
-* {
-  box-sizing: border-box;
-}
-html,
-body {
+/* Thiết lập cơ bản */
+body,
+html {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
   height: 100%;
-}
-body {
-  margin: 0;
-  font: 500 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
-    Cantarell, "Noto Sans", sans-serif;
-  color: var(--text);
-  background: linear-gradient(120deg, #0c0819 0%, #120a25 50%, #0f0a1f 100%);
+  width: 100%;
+  overflow: hidden; /* Tránh cuộn cả trang */
 }
 
-.app {
+/* Khung ứng dụng 3 cột */
+.chat-app {
+  display: flex; /* Dùng Flexbox để chia cột */
+  width: 100vw;
   height: 100vh;
-  display: grid;
-  grid-template-columns: 280px 1fr 280px;
-  gap: 12px;
-  padding: 16px;
 }
 
-.sidebar {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
+/* Cài đặt chung cho các cột */
+.column {
+  height: 100vh;
+  box-sizing: border-box; /* Tính cả padding/border vào width/height */
   display: flex;
-  flex-direction: column;
-  min-height: 0;
+  flex-direction: column; /* Các item trong cột xếp dọc */
 }
 
-.sidebar__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 14px 8px 14px;
-  border-bottom: 1px solid var(--border);
+/* Cột 1: Peers (Bên trái) */
+#left-sidebar {
+  width: 20%;
+  min-width: 180px;
+  border-right: 1px solid #ccc;
+  background-color: #f5f5f5;
 }
-.sidebar__header h2 {
+
+/* Cột 3: Channels (Bên phải) */
+#right-sidebar {
+  width: 20%;
+  min-width: 180px;
+  border-left: 1px solid #ccc;
+  background-color: #f5f5f5;
+}
+
+/* Cột 2: Chat (Ở giữa) */
+#chat-center {
+  width: 60%;
+  flex-grow: 1; /* Tự động lấp đầy phần còn lại */
+}
+
+/* --- Tùy chỉnh bên trong các cột --- */
+
+/* Tiêu đề cột */
+.column h3 {
   margin: 0;
-  font-size: 16px;
-  letter-spacing: 0.4px;
-  color: #fff;
+  padding: 15px;
+  border-bottom: 1px solid #ccc;
 }
 
-.sidebar__search {
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
+/* Thanh tìm kiếm trong sidebar */
+.sidebar-search {
+  padding: 10px;
 }
-.sidebar__search input {
+.sidebar-search input {
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--panel-2);
-  color: var(--text);
-  outline: none;
-}
-.sidebar__search input::placeholder {
-  color: var(--muted);
-}
-
-.list {
-  list-style: none;
-  margin: 0;
   padding: 8px;
-  overflow: auto;
-  flex: 1;
-  min-height: 0;
-}
-.list li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 10px;
-  border-radius: 12px;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-.list li:hover {
-  background: rgba(139, 92, 246, 0.08);
-  border-color: var(--border);
-}
-.list li.active {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: var(--accent);
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
-.avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 13px;
+/* Danh sách kênh (bên phải) */
+#channel-list {
+  overflow-y: auto;
+  flex-grow: 1;
 }
-.status {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  margin-left: auto;
-}
-.status.online {
-  background: var(--success);
-}
-.status.offline {
-  background: #6b7280;
-}
-
-.badge {
-  margin-left: auto;
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--badge);
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-
-.chat {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  box-shadow: var(--shadow);
-}
-
-.chat__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  background: var(--panel);
-  z-index: 2;
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-}
-
-.chat__name {
-  font-size: 18px;
-  font-weight: 700;
-}
-.chat__subtitle {
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 2px;
-}
-
-.chat__messages {
-  flex: 1;
-  overflow: auto;
-  padding: 16px;
-  scroll-behavior: smooth;
-}
-
-.msg {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 8px 0;
-  max-width: 70%;
-}
-.msg.me {
-  margin-left: auto;
-  align-items: flex-end;
-}
-.msg .bubble {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  padding: 10px 12px;
-  border-radius: 14px;
-}
-.msg.me .bubble {
-  background: linear-gradient(
-    135deg,
-    rgba(139, 92, 246, 0.25),
-    rgba(124, 58, 237, 0.25)
-  );
-  border-color: rgba(139, 92, 246, 0.5);
-}
-.msg .meta {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.composer {
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
-  padding: 12px;
-  border-top: 1px solid var(--border);
-  position: sticky;
-  bottom: 0;
-  background: var(--panel);
-  border-bottom-left-radius: 18px;
-  border-bottom-right-radius: 18px;
-}
-.composer__left {
-  flex: 1;
-}
-.composer textarea {
-  width: 100%;
-  resize: none;
-  min-height: 40px;
-  max-height: 160px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--panel-2);
-  color: var(--text);
-  outline: none;
-}
-.composer__right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.icon-btn,
-.ghost-btn,
-.accent-btn {
-  border: 1px solid var(--border);
-  background: var(--panel-2);
-  color: var(--text);
-  padding: 8px 10px;
-  border-radius: 10px;
+.channel {
+  padding: 10px 15px;
   cursor: pointer;
 }
-.icon-btn {
-  font-size: 16px;
-  line-height: 1;
+.channel:hover {
+  background-color: #e0e0e0;
 }
-.ghost-btn:hover,
-.icon-btn:hover {
-  border-color: var(--accent);
-}
-.accent-btn {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border-color: transparent;
+.channel.active {
+  font-weight: bold;
+  background-color: #ddd; /* Màu xám nhạt cho "active" */
 }
 
-.composer__target {
-  font-size: 12px;
-  color: var(--muted);
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px dashed var(--border);
+/* --- Tùy chỉnh cột Chat ở giữa --- */
+
+/* Header của khung chat */
+#chat-header {
+  padding: 15px;
+  border-bottom: 1px solid #ccc;
+  background-color: #fafafa;
+}
+#chat-header h4 {
+  margin: 0;
+  font-size: 1.1em;
+}
+#chat-header span {
+  font-size: 0.9em;
+  color: #555;
 }
 
-@media (max-width: 1080px) {
-  .app {
-    grid-template-columns: 220px 1fr 220px;
-  }
+/* Khung tin nhắn */
+#messages {
+  flex-grow: 1; /* Lấp đầy không gian */
+  overflow-y: scroll;
+  padding: 15px;
 }
-@media (max-width: 860px) {
-  .app {
-    grid-template-columns: 72px 1fr 200px;
-  }
-  .sidebar__search {
-    display: none;
-  }
-  .list .name {
-    display: none;
-  }
-  .badge {
-    display: none;
-  }
+
+/* Khung nhập liệu */
+#input-area {
+  display: flex;
+  padding: 15px;
+  border-top: 1px solid #ccc;
+  background-color: #f9f9f9;
 }
-@media (max-width: 680px) {
-  .app {
-    grid-template-columns: 1fr;
-  }
-  .peers,
-  .channels {
-    display: none;
-  }
+#message-input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 10px;
 }
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+#send-button {
+  padding: 10px 15px;
+  border: none;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.35);
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
+#send-button:hover {
+  background-color: #ddd;
 }

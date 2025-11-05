@@ -44,6 +44,8 @@ class Response():
                 base_dir = BASE_DIR+"www/"
             elif sub_type == 'css':
                 base_dir = BASE_DIR+"static/css/"
+            elif sub_type == 'plain':
+                base_dir = BASE_DIR+"static/css/"
             else:
                 raise ValueError(f"Unsupported text subtype: {sub_type}")
         elif main_type == 'image':

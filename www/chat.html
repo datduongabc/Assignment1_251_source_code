@@ -1,93 +1,129 @@
 <!DOCTYPE html>
 <html lang="vi">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Hybrid Chat UI (Purple)</title>
-    <link rel="stylesheet" href="static/css/chat.css" />
+    <meta charset="UTF-8" />
+    <title>P2P Chat (BKNet)</title>
+    <link rel="stylesheet" href="../static/css/chat.css" />
   </head>
   <body>
-    <div id="app" class="app">
-      <!-- Left: Peer list -->
-      <aside class="sidebar peers">
-        <header class="sidebar__header">
-          <h2>Peers</h2>
-          <button
-            id="refreshPeers"
-            class="icon-btn"
-            aria-label="Refresh peers"
-            title="Refresh peers"
-          >
-            ⟳
-          </button>
-        </header>
-        <div class="sidebar__search">
-          <input id="peerSearch" type="text" placeholder="Tìm peer..." />
+    <div class="chat-app">
+      <div id="chat-center" class="column">
+        <div id="chat-header">
+          <h4 id="current-channel-title">#general</h4>
+          <span>Broadcast trong kênh</span>
         </div>
-        <ul id="peerList" class="list"></ul>
-      </aside>
 
-      <!-- Center: Chat window -->
-      <main class="chat">
-        <header class="chat__header">
-          <div class="chat__title">
-            <div id="chatTitle" class="chat__name"># general</div>
-            <div id="chatSubtitle" class="chat__subtitle">
-              Broadcast trong kênh
-            </div>
-          </div>
-          <div class="chat__actions">
-            <button id="simulateBtn" class="ghost-btn" title="Giả lập tin đến">
-              Simulate
-            </button>
-          </div>
-        </header>
-
-        <section
-          id="messageList"
-          class="chat__messages"
-          aria-live="polite"
-        ></section>
-
-        <form id="composer" class="composer" autocomplete="off">
-          <div class="composer__left">
-            <textarea
-              id="messageInput"
-              rows="1"
-              placeholder="Nhập tin nhắn... (Shift + Enter để xuống dòng)"
-            ></textarea>
-          </div>
-          <div class="composer__right">
-            <div id="sendTarget" class="composer__target" title="Đích gửi">
-              Kênh
-            </div>
-            <button id="sendBtn" type="submit-info" class="accent-btn">
-              Gửi
-            </button>
-          </div>
-        </form>
-      </main>
-
-      <!-- Right: Channel list -->
-      <aside class="sidebar channels">
-        <header class="sidebar__header">
-          <h2>Channels</h2>
-          <button
-            id="addChannel"
-            class="icon-btn"
-            aria-label="Add channel"
-            title="Add channel"
-          >
-            ＋
-          </button>
-        </header>
-        <div class="sidebar__search">
-          <input id="channelSearch" type="text" placeholder="Tìm channel..." />
+        <div id="messages">
+          <div>[Hệ thống] Chào mừng bạn đến với P2P Chat!</div>
         </div>
-        <ul id="channelList" class="list"></ul>
-      </aside>
+
+        <div id="input-area">
+          <input
+            type="text"
+            id="message-input"
+            placeholder="Nhập tin nhắn..."
+          />
+          <button id="send-button">Gửi</button>
+        </div>
+      </div>
+
+      <div id="right-sidebar" class="column">
+        <h3>Channels</h3>
+        <div class="sidebar-search">
+          <input type="text" placeholder="Tìm channel..." />
+        </div>
+        <div id="channel-list">
+          <div class="channel active" data-channel="#general">#general</div>
+          <div class="channel" data-channel="#mmt">#mmt</div>
+          <div class="channel" data-channel="#cnpm">#cnpm</div>
+        </div>
+      </div>
     </div>
+    <script>
+      // -----------------------------------------------------------------
+      // GIAO TIẾP VỚI LOCAL PEER BACKEND (start_peer.py)
+      // -----------------------------------------------------------------
 
-    <script src="./js/chat.js"></script>
+      const PEER_API_URL = "http://localhost:9001"; // Cổng API của start_peer.py
+
+      const messagesDiv = document.getElementById("messages");
+      const input = document.getElementById("message-input");
+      const sendButton = document.getElementById("send-button");
+      const channelListDiv = document.getElementById("channel-list");
+      const channelTitle = document.getElementById("current-channel-title");
+      let currentChannel = "#general";
+
+      // --- 0. XỬ LÝ CLICK CHỌN KÊNH ---
+      channelListDiv.addEventListener("click", (e) => {
+        if (e.target && e.target.classList.contains("channel")) {
+          // Bỏ active ở kênh cũ
+          const oldActive = channelListDiv.querySelector(".active");
+          if (oldActive) oldActive.classList.remove("active");
+
+          // Thêm active vào kênh mới click
+          e.target.classList.add("active");
+
+          // Cập nhật biến và tiêu đề
+          currentChannel = e.target.dataset.channel;
+          channelTitle.textContent = currentChannel;
+
+          addMessageToUI(`[Hệ thống] Đã chuyển sang kênh ${currentChannel}`);
+        }
+      });
+
+      // --- 1. Gửi tin nhắn ĐI ---
+      async function sendMessage() {
+        const content = input.value;
+        if (!content) return;
+        try {
+          await fetch(`${PEER_API_URL}/send`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              channel: currentChannel,
+              message: content,
+            }),
+          });
+          input.value = "";
+        } catch (e) {
+          addMessageToUI(
+            `[Lỗi] Không kết nối được với Peer process (start_peer.py).`
+          );
+        }
+      }
+
+      sendButton.addEventListener("click", sendMessage);
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          // Gửi bằng Enter
+          e.preventDefault(); // Ngăn xuống dòng
+          sendMessage();
+        }
+      });
+
+      // --- 2. Nhận tin nhắn VỀ ---
+      function addMessageToUI(msg) {
+        const msgElement = document.createElement("div");
+        msgElement.textContent = msg;
+        messagesDiv.appendChild(msgElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      async function pollForMessages() {
+        while (true) {
+          try {
+            const response = await fetch(`${PEER_API_URL}/messages`);
+            if (response.status === 200) {
+              const message = await response.json();
+              addMessageToUI(message.text);
+            }
+          } catch (e) {
+            addMessageToUI("[Hệ thống] Mất kết nối... Đang thử lại sau 5s.");
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+          }
+        }
+      }
+      pollForMessages();
+    </script>
   </body>
 </html>

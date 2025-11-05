@@ -1,37 +1,9 @@
-"""
-daemon.backend
-
-This module provides a backend object to manage and persist backend daemon. 
-It implements a basic backend server using Python's socket and threading libraries.
-It supports handling multiple client connections concurrently and routing requests using a custom HTTP adapter.
-
-Requirements:
---------------
-- socket: provide socket networking interface.
-- threading: Enables concurrent client handling via threads.
-- response: response utilities.
-- httpadapter: the class for handling HTTP requests.
-- CaseInsensitiveDict: provides dictionary for managing headers or routes.
-
-Notes:
-------
-- The server create daemon threads for client handling.
-- The current implementation error handling is minimal, socket errors are printed to the console.
-- The actual request processing is delegated to the HttpAdapter class.
-
-Usage Example:
---------------
->>> create_backend("127.0.0.1", 9000, routes={})
-"""
-
 import socket
 import threading
 from .httpadapter import HttpAdapter
 
 def handle_client(ip, port, conn, addr, routes):
     """
-    Initializes an HttpAdapter instance and delegates the client handling logic to it.
-
     :param ip (str): IP address of the server.
     :param port (int): Port number the server is listening on.
     :param conn (socket.socket): Client connection socket.
@@ -43,9 +15,6 @@ def handle_client(ip, port, conn, addr, routes):
 
 def run_backend(ip, port, routes):
     """
-    Starts the backend server, binds to the specified IP and port, and listens for incoming connections.
-    Each connection is handled in a separate thread. The backend accepts incoming connections and spawns a thread for each client.
-
     :param ip (str): IP address to bind the server.
     :param port (int): Port number to listen on.
     :param routes (dict): Dictionary of route handlers.
@@ -69,8 +38,6 @@ def run_backend(ip, port, routes):
 
 def create_backend(ip, port, routes={}):
     """
-    Entry point for creating and running the backend server.
-
     :param ip (str): IP address to bind the server.
     :param port (int): Port number to listen on.
     :param routes (dict, optional): Dictionary of route handlers. Defaults to empty dict.

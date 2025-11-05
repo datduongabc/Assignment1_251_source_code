@@ -1,28 +1,6 @@
-"""
-daemon.request
-
-This module provides a Request object to manage and persist request settings (cookies, auth, proxies).
-"""
 from .dictionary import CaseInsensitiveDict
 
 class Request():
-    """The fully mutable "class" `Request <Request>` object,
-    containing the exact bytes that will be sent to the server.
-
-    Instances are generated from a "class" `Request <Request>` object, and
-    should not be instantiated manually; doing so may produce undesirable
-    effects.
-
-    Usage::
-
-      >>> import deamon.request
-      >>> req = request.Request()
-      ## Incoming message obtain aka. incoming_msg
-      >>> r = req.prepare(incoming_msg)
-      >>> r
-      <Request>
-    """
-
     def __init__(self):
         #: HTTP verb to send to the server.
         self.method = None
@@ -107,3 +85,15 @@ class Request():
         if not routes == {}:
             self.routes = routes
             self.hook = routes.get((self.method, self.path))
+            
+    def prepare_body(self, data, files, json=None):
+        pass
+
+    def prepare_content_length(self, body):
+        pass
+
+    def prepare_auth(self, auth, url=""):
+        pass
+
+    def prepare_cookies(self, cookies):
+        pass

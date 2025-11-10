@@ -1,5 +1,6 @@
 import socket
 import threading
+from .response import Response
 from .utils import raw_data_to_msg
 
 HOST_COUNTERS = {}
@@ -10,23 +11,11 @@ def forward_request(host, port, request):
     try:
         backend.connect((host, port))
         backend.sendall(request.encode('utf-8'))
-        response = b""
-        while True:
-            chunk = backend.recv(4096)
-            if not chunk:
-                break
-            response += chunk
-        return response
-    except socket.error as e:
-      print("Socket error: {}".format(e))
-      return (
-            "HTTP/1.1 404 Not Found\r\n"
-            "Content-Type: text/plain\r\n"
-            "Content-Length: 13\r\n"
-            "Connection: close\r\n"
-            "\r\n"
-            "404 Not Found"
-        ).encode('utf-8')
+        return raw_data_to_msg(backend).encode('utf-8')
+    except socket.error:
+      print("Socket error")
+      resp = Response()
+      return resp.build_internal_error()
 
 def resolve_routing_policy(hostname, routes):
     proxy_pass_list, dist_policy = routes.get(hostname,([], 'round-robin'))
@@ -46,7 +35,7 @@ def resolve_routing_policy(hostname, routes):
                 proxy_host, proxy_port = selected_backend.split(":", 1)
                 new_index = (current_index + 1) % len(proxy_pass_list)
                 HOST_COUNTERS[hostname] = new_index
-                print(f"[Proxy] RoundRobin: {hostname} -> index {current_index} ({selected_backend})")
+                print("[Proxy] RoundRobin: {} -> index {} ({})".format(hostname, current_index, selected_backend))
     else:
         proxy_host, proxy_port = proxy_pass_list.split(":", 1)
     return proxy_host, proxy_port
@@ -66,14 +55,8 @@ def handle_client(ip, port, conn, addr, routes):
         print("Host {} forwards to {}:{}".format(hostname, proxy_host, proxy_port))
         response = forward_request(proxy_host, proxy_port, msg)
     else:
-        response = (
-            "HTTP/1.1 404 Not Found\r\n"
-            "Content-Type: text/plain\r\n"
-            "Content-Length: 13\r\n"
-            "Connection: close\r\n"
-            "\r\n"
-            "404 Not Found"
-        ).encode('utf-8')
+        response = Response()
+        response = response.build_not_found()
     conn.sendall(response)
     conn.close()
 

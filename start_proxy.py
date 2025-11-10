@@ -28,11 +28,7 @@ def parse_virtual_hosts(config_file):
             dist_policy_map = policy_match.group(1)
         else:
             dist_policy_map = 'round-robin'
-        
-        if len(proxy_passes) == 1:
-            routes[host] = (proxy_passes[0], dist_policy_map)
-        else:
-            routes[host] = (proxy_passes, dist_policy_map)
+        routes[host] = (proxy_passes, dist_policy_map)
     for key, value in routes.items():
         print({key: value})
     return routes

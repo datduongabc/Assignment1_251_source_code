@@ -106,6 +106,75 @@ html {
   flex-grow: 1; /* Lấp đầy không gian */
   overflow-y: scroll;
   padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Tin nhắn chung */
+.message {
+  display: flex;
+  margin: 5px 0;
+  max-width: 70%;
+}
+
+/* Tin nhắn của mình (bên phải) */
+.message.own {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message.own .message-bubble {
+  background-color: #007bff;
+  color: white;
+  margin-left: 10px;
+}
+
+/* Tin nhắn của người khác (bên trái) */
+.message.other {
+  align-self: flex-start;
+}
+
+.message.other .message-bubble {
+  background-color: #f1f1f1;
+  color: #333;
+  margin-right: 10px;
+}
+
+/* Bong bóng tin nhắn */
+.message-bubble {
+  padding: 10px 15px;
+  border-radius: 18px;
+  max-width: 300px;
+  word-wrap: break-word;
+  position: relative;
+}
+
+/* Tên người gửi */
+.message-sender {
+  font-size: 12px;
+  color: #666;
+  margin: 2px 10px;
+  font-weight: bold;
+}
+
+/* Thời gian */
+.message-time {
+  font-size: 10px;
+  color: #999;
+  margin: 2px 10px;
+}
+
+/* Tin nhắn hệ thống */
+.system-msg {
+  text-align: center;
+  background-color: #e9ecef;
+  color: #6c757d;
+  padding: 8px;
+  border-radius: 15px;
+  margin: 10px auto;
+  max-width: 80%;
+  font-size: 14px;
 }
 
 /* Khung nhập liệu */

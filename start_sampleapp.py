@@ -37,7 +37,6 @@ def submit_info(header, body):
         with peers_lock:
             if peer_info not in active_peers:
                 active_peers.append(peer_info)
-        print("Current active peers: ", active_peers)
         return True
     except Exception:
         return False

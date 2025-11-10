@@ -2,36 +2,34 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <title>P2P Chat (BKNet)</title>
-    <link rel="stylesheet" href="../static/css/chat.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>P2P Chat</title>
+    <link rel="stylesheet" href="/chat.css" />
+
+    <script id="app-config">
+      // __APP_CONFIG_JSON__ SẼ ĐƯỢC THAY THẾ BỞI p2p_ui.py
+      window.APP_CONFIG = __APP_CONFIG_JSON__;
+    </script>
   </head>
   <body>
     <div class="chat-app">
       <div id="chat-center" class="column">
         <div id="chat-header">
           <h4 id="current-channel-title">#general</h4>
-          <span>Broadcast trong kênh</span>
         </div>
-
-        <div id="messages">
-          <div>[Hệ thống] Chào mừng bạn đến với P2P Chat!</div>
-        </div>
-
+        <div id="messages"></div>
         <div id="input-area">
           <input
             type="text"
             id="message-input"
             placeholder="Nhập tin nhắn..."
+            autocomplete="off"
           />
           <button id="send-button">Gửi</button>
         </div>
       </div>
-
       <div id="right-sidebar" class="column">
-        <h3>Channels</h3>
-        <div class="sidebar-search">
-          <input type="text" placeholder="Tìm channel..." />
-        </div>
+        <h3>Kênh chat</h3>
         <div id="channel-list">
           <div class="channel active" data-channel="#general">#general</div>
           <div class="channel" data-channel="#mmt">#mmt</div>
@@ -39,91 +37,6 @@
         </div>
       </div>
     </div>
-    <script>
-      // -----------------------------------------------------------------
-      // GIAO TIẾP VỚI LOCAL PEER BACKEND (start_peer.py)
-      // -----------------------------------------------------------------
-
-      const PEER_API_URL = "http://localhost:9001"; // Cổng API của start_peer.py
-
-      const messagesDiv = document.getElementById("messages");
-      const input = document.getElementById("message-input");
-      const sendButton = document.getElementById("send-button");
-      const channelListDiv = document.getElementById("channel-list");
-      const channelTitle = document.getElementById("current-channel-title");
-      let currentChannel = "#general";
-
-      // --- 0. XỬ LÝ CLICK CHỌN KÊNH ---
-      channelListDiv.addEventListener("click", (e) => {
-        if (e.target && e.target.classList.contains("channel")) {
-          // Bỏ active ở kênh cũ
-          const oldActive = channelListDiv.querySelector(".active");
-          if (oldActive) oldActive.classList.remove("active");
-
-          // Thêm active vào kênh mới click
-          e.target.classList.add("active");
-
-          // Cập nhật biến và tiêu đề
-          currentChannel = e.target.dataset.channel;
-          channelTitle.textContent = currentChannel;
-
-          addMessageToUI(`[Hệ thống] Đã chuyển sang kênh ${currentChannel}`);
-        }
-      });
-
-      // --- 1. Gửi tin nhắn ĐI ---
-      async function sendMessage() {
-        const content = input.value;
-        if (!content) return;
-        try {
-          await fetch(`${PEER_API_URL}/send`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              channel: currentChannel,
-              message: content,
-            }),
-          });
-          input.value = "";
-        } catch (e) {
-          addMessageToUI(
-            `[Lỗi] Không kết nối được với Peer process (start_peer.py).`
-          );
-        }
-      }
-
-      sendButton.addEventListener("click", sendMessage);
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          // Gửi bằng Enter
-          e.preventDefault(); // Ngăn xuống dòng
-          sendMessage();
-        }
-      });
-
-      // --- 2. Nhận tin nhắn VỀ ---
-      function addMessageToUI(msg) {
-        const msgElement = document.createElement("div");
-        msgElement.textContent = msg;
-        messagesDiv.appendChild(msgElement);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      }
-
-      async function pollForMessages() {
-        while (true) {
-          try {
-            const response = await fetch(`${PEER_API_URL}/messages`);
-            if (response.status === 200) {
-              const message = await response.json();
-              addMessageToUI(message.text);
-            }
-          } catch (e) {
-            addMessageToUI("[Hệ thống] Mất kết nối... Đang thử lại sau 5s.");
-            await new Promise((resolve) => setTimeout(resolve, 5000));
-          }
-        }
-      }
-      pollForMessages();
-    </script>
+    <script src="/static/js/chat.js" defer></script>
   </body>
 </html>

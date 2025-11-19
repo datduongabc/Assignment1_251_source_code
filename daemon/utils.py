@@ -20,34 +20,32 @@ def raw_data_to_msg(conn):
             if not chunk:
                 break
             header_byte += chunk
-        header_string = header_byte.decode('latin-1')
-        
-        body_byte = b""
-        if "\r\n\r\n" in header_string:
-            headers, extra_data_after_headers = header_string.split("\r\n\r\n", 1)
-            body_byte = extra_data_after_headers.encode('latin-1')
+        if b"\r\n\r\n" in header_byte:
+            headers_raw, extra_data_after_headers = header_byte.split(b"\r\n\r\n", 1)
         else:
-            headers = header_string
-        
+            headers_raw = header_byte
+            extra_data_after_headers = b""
+        header_string = headers_raw.decode('latin-1')
+                
         # 2. Read Content-Length
         headers_dict = {}
-        for line in headers.split('\r\n')[1:]:
+        for line in header_string.split('\r\n')[1:]:
             if ': ' in line:
                 key, val = line.split(': ', 1)
                 headers_dict[key.lower()] = val
         content_length = int(headers_dict.get('content-length', 0))
         
         # 3. Read Body
+        body_byte = extra_data_after_headers
         while len(body_byte) < content_length:
             body_byte_remain = content_length - len(body_byte)
             chunk = conn.recv(min(4096, body_byte_remain))
             if not chunk:
                 break
             body_byte += chunk
-        bodies = body_byte.decode('utf-8')
 
         # 4. Request = headers + bodies
-        return headers + "\r\n\r\n" + bodies
+        return header_string, body_byte
     except Exception:
         raise
     
@@ -70,7 +68,7 @@ def send_http_request(tracker_url, method, path, body_data=None, auth_cookie=Non
                 body_str = str(body_data)
         
         headers = CaseInsensitiveDict()
-        headers['Host'] = f"{host}:{port}"
+        headers['Host'] = "{host}:{port}".format(host=host, port=port)
         headers['Connection'] = 'close'
         headers['User-Agent'] = 'P2P-Peer/1.0'
         
@@ -88,20 +86,15 @@ def send_http_request(tracker_url, method, path, body_data=None, auth_cookie=Non
         
         request_raw = "\r\n".join(line for line in request_lines).encode('utf-8')
         client_socket.sendall(request_raw)
-        response_str = raw_data_to_msg(client_socket)
+        header_resp_str, body_content_bytes = raw_data_to_msg(client_socket)
         client_socket.close()
-
-        if '\r\n\r\n' not in response_str:
-            return 500, "", b""
-            
-        headers_raw, body_content_str = response_str.split('\r\n\r\n', 1)
-        status_line = headers_raw.split('\r\n', 1)[0]
         
         try:
+            status_line = header_resp_str.split('\r\n')[0]
             status_code = int(status_line.split(' ')[1])
-        except (IndexError, ValueError):
+        except (IndexError, ValueError, AttributeError):
             status_code = 500
-        return status_code, headers_raw, body_content_str.encode('utf-8')
-        
+        return status_code, header_resp_str, body_content_bytes
+
     except Exception:
         return 500, "", b""

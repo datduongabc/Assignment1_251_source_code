@@ -18,12 +18,18 @@ channelListDiv.addEventListener("click", (e) => {
   if (e.target && e.target.classList.contains("channel")) {
     const newChannel = e.target.dataset.channel;
     if (newChannel !== currentChannel) {
+      // 1. Cập nhật giao diện
       document.querySelector(".channel.active")?.classList.remove("active");
       e.target.classList.add("active");
+      // 2. Xóa chấm thông báo
+      e.target.classList.remove("new-message");
+      // 3. Cập nhật biến global
       currentChannel = newChannel;
       channelTitle.textContent = currentChannel;
 
-      addMessage(`Switched to ${currentChannel}`);
+      // 4. Xóa tin nhắn cũ và thông báo chuyển kênh
+      messagesDiv.innerHTML = "";
+      addMessage(`Switched to channel <strong>${currentChannel}</strong>`);
     }
   }
 });
@@ -55,14 +61,11 @@ async function sendMessage() {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    // Hiển thị tin nhắn của mình ngay lập tức
     addOwnMessage(content);
   } catch (e) {
     addMessage(`Error: ${e.message}`);
-    // Restore input nếu lỗi
     input.value = content;
   } finally {
-    // Unlock sending
     isSending = false;
     input.disabled = false;
     sendButton.disabled = false;
@@ -116,6 +119,7 @@ function addOtherMessage(msg, sender) {
   addMessage(msg, sender || "Unknown", false);
 }
 
+// --- NHẬN TIN NHẮN ---
 const seenMessages = new Set();
 let lastPeerCount = -1;
 let isConnectionLost = false;
@@ -128,37 +132,33 @@ async function pollMessages() {
 
       if (isConnectionLost) {
         isConnectionLost = false;
-        addMessage("✅ Reconnected!");
+        addMessage("Reconnected!");
       }
 
       if (response.status === 200) {
         const data = await response.json();
-        console.log("Received message:", data); // Debug log
 
-        if (
-          data.type === "channel_peer_update" ||
-          data.type === "peer_update"
-        ) {
+        if (data.type === "channel_peer_update") {
           // Hiển thị peer count chung (không phân kênh)
-          const peerCount = data.peer_count || data.peer_count;
+          const peerCount = data.peer_count || 0;
           if (peerCount !== lastPeerCount) {
             lastPeerCount = peerCount;
-            addMessage(`📊 Connected peers: ${peerCount}`);
+            addMessage(`Connected peers: ${peerCount}`);
           }
         } else if (data.type === "message") {
-          // Handle regular chat message
-          // Tạo unique ID dựa trên content và sender (không dùng timestamp)
-          const msgId = `${data.sender}-${data.text}-${data.text.length}`;
+          const msgId = `${data.sender}-${data.raw}`;
 
-          if (data.sender && data.text && !seenMessages.has(msgId)) {
+          if (data.text && !seenMessages.has(msgId)) {
             seenMessages.add(msgId);
 
-            if (data.sender === "Unknown") {
-              addMessage(data.text);
-            }
-            // Chỉ hiển thị tin nhắn của người khác
-            else if (data.sender !== USERNAME) {
-              addOtherMessage(data.text, data.sender);
+            if (data.channel === currentChannel) {
+              if (data.sender === USERNAME) {
+                addOwnMessage(data.text);
+              } else {
+                addOtherMessage(data.text, data.sender);
+              }
+            } else {
+              showNotification(data.channel);
             }
           }
         }
@@ -166,8 +166,6 @@ async function pollMessages() {
         // Polling nhanh hơn khi không có tin nhắn
         await new Promise((r) => setTimeout(r, 100));
       }
-
-      // Không cần polling peer count - chỉ nhận qua messages
     } catch (e) {
       console.error("Polling error:", e);
 
@@ -184,7 +182,7 @@ async function pollMessages() {
 // --- KHỞI TẠO ---
 setTimeout(async () => {
   try {
-    const response = await fetch(`${API_BASE}/status`);
+    const response = await fetch(`${API_BASE}/peers`);
     if (response.ok) {
       const data = await response.json();
       addMessage(`Connected peers: ${data.peer_count}`);

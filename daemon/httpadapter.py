@@ -27,8 +27,8 @@ class HttpAdapter:
         self.connaddr = addr
         req = self.request
         resp = self.response
-        msg = raw_data_to_msg(conn)
-        req.prepare(msg, routes)
+        header_string, body_byte = raw_data_to_msg(conn)
+        req.prepare(header_string, body_byte, routes)
         if not req.method:
             conn.close()
             return

@@ -10,8 +10,9 @@ def forward_request(host, port, request):
     backend = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         backend.connect((host, port))
-        backend.sendall(request.encode('utf-8'))
-        return raw_data_to_msg(backend).encode('utf-8')
+        backend.sendall(request)
+        header_string, body_byte = raw_data_to_msg(backend)
+        return header_string.encode('latin-1') + b"\r\n\r\n" + body_byte
     except socket.error:
       print("Socket error")
       resp = Response()
@@ -41,10 +42,10 @@ def resolve_routing_policy(hostname, routes):
     return proxy_host, proxy_port
 
 def handle_client(ip, port, conn, addr, routes):
-    msg = raw_data_to_msg(conn)
-    headers = msg.split('\r\n\r\n', 1)[0]
+    header_string, body_byte = raw_data_to_msg(conn)
+    msg = header_string.encode('latin-1') + b"\r\n\r\n" + body_byte
     hostname = "unknown"
-    for line in headers.splitlines():
+    for line in header_string.splitlines():
         if line.lower().startswith('host:'):
             hostname = line.split(':', 1)[1].strip()
             break

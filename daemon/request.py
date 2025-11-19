@@ -41,21 +41,17 @@ class Request():
                 headers[key] = val
         return headers
 
-    def prepare(self, request, routes=None):
-        try:
-            header_text, body_text = request.split('\r\n\r\n', 1)
-        except ValueError:
-            header_text = request
-            body_text = ""
+    def prepare(self, header_string, body_byte, routes=None):
         # Prepare the request line from the request header
-        self.method, self.path, self.version = self.extract_request_line(header_text)
+        self.method, self.path, self.version = self.extract_request_line(header_string)
         if not self.method:
             self.headers = {}
             self.body = {}
             self.cookies = {}
             return
         print("[Request] {} path {} version {}".format(self.method, self.path, self.version))
-        self.headers = self.prepare_headers(header_text)
+        self.headers = self.prepare_headers(header_string)
+        content_type = self.headers.get('content-type', '').lower()
 
         def parse_body(body_str):
             if not body_str:
@@ -68,8 +64,15 @@ class Request():
                     dict_body[key] = val
             return dict_body
 
-        self.body = parse_body(body_text)
-            
+        if 'application/x-www-form-urlencoded' in content_type or 'text' in content_type:
+            try:
+                body_str = body_byte.decode('utf-8')
+                self.body = parse_body(body_str)
+            except Exception:
+                self.body = {}
+        else:
+            self.body = body_byte
+        # Cookies Parsing 
         def parse_cookies(cookies_str):
             if not cookies_str:
                 return {}
@@ -82,6 +85,7 @@ class Request():
             return cookies
         cookies_str = self.headers.get('cookie', '')
         self.cookies = parse_cookies(cookies_str)
+        # Routing Hook
         if not routes == {}:
             self.routes = routes
             self.hook = routes.get((self.method, self.path))

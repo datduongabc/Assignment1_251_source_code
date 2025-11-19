@@ -47,12 +47,12 @@ class Response():
             elif sub_type == 'plain':
                 base_dir = BASE_DIR+"static/css/"
             else:
-                raise ValueError(f"Unsupported text subtype: {sub_type}")
+                raise ValueError("Unsupported text subtype: {}".format(sub_type))
         elif main_type == 'image':
             if sub_type in ['png', 'jpeg', 'vnd.microsoft.icon', 'x-icon']:
                 base_dir = BASE_DIR+"static/images/"
             else:
-                raise ValueError(f"Unsupported image subtype: {sub_type}")
+                raise ValueError("Unsupported image subtype: {}".format(sub_type))
         elif main_type == 'application':
             if sub_type == 'x-x509-ca-cert':
                 base_dir = BASE_DIR+"cert/"
@@ -61,9 +61,9 @@ class Response():
             elif sub_type == 'python':
                 base_dir = BASE_DIR+"apps/"
             else:
-                raise ValueError(f"Unsupported application subtype: {sub_type}")
+                raise ValueError("Unsupported application subtype: {}".format(sub_type))
         else:
-            raise ValueError(f"Unsupported main MIME type: {main_type}")
+            raise ValueError("Unsupported main MIME type: {}".format(main_type))
         return base_dir
 
     def build_content(self, path, base_dir):

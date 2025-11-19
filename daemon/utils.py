@@ -29,7 +29,7 @@ def raw_data_to_msg(conn):
                 
         # 2. Read Content-Length
         headers_dict = {}
-        for line in header_string.split('\r\n')[1:]:
+        for line in header_string.split('\r\n'):
             if ': ' in line:
                 key, val = line.split(': ', 1)
                 headers_dict[key.lower()] = val
@@ -49,9 +49,9 @@ def raw_data_to_msg(conn):
     except Exception:
         raise
     
-def send_http_request(tracker_url, method, path, body_data=None, auth_cookie=None):
+def send_http_request(tracker, method, path, body_data=None, auth_cookie=None):
     try:
-        parsed_url = urlparse(tracker_url)
+        parsed_url = urlparse(tracker)
         host = parsed_url.hostname or "localhost"
         port_from_url = parsed_url.port
         port = port_from_url if port_from_url else 8000
@@ -81,7 +81,7 @@ def send_http_request(tracker_url, method, path, body_data=None, auth_cookie=Non
         
         request_lines = ["{} {} HTTP/1.1".format(method.upper(), path)]
         for header, value in headers.items():
-            request_lines.append(f"{header}: {value}")
+            request_lines.append("{}: {}".format(header, value))
         request_lines.extend(["", body_str])
         
         request_raw = "\r\n".join(line for line in request_lines).encode('utf-8')

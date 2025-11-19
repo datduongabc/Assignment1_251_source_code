@@ -149,7 +149,7 @@ class Response():
                 "401 Unauthorized"
             ).encode('utf-8')
 
-    def build_notfound(self):
+    def build_not_found(self):
         return (
                 "HTTP/1.1 404 Not Found\r\n"
                 "Accept-Ranges: bytes\r\n"

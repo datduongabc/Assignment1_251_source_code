@@ -9,13 +9,13 @@ from daemon.utils import send_http_request
 from API_gateway import run_api_server
 
 class Peer:
-    def __init__(self, tracker_url, host, port, username, ui_queue):
-        self.tracker_url = tracker_url
+    def __init__(self, tracker, host, port, username, ui_queue):
+        self.tracker = tracker
         self.host = host
         self.port = int(port)
         self.username = username
         
-        self.auth_cookie = None 
+        self.auth_cookie = None
         self.logged_in = False
         self.peers = {}
         self.connections_lock = threading.Lock()
@@ -41,7 +41,7 @@ class Peer:
         self.peer_server_socket.listen(5)
         while self.running:
             try:
-                conn, addr = self.peer_server_socket.accept()                
+                conn, addr = self.peer_server_socket.accept()
                 listener = threading.Thread(target=self.handle_peer_connections, args=(conn, addr), daemon=True)
                 listener.start()
             except Exception:
@@ -169,7 +169,7 @@ class Peer:
         payload = {"username": username, "password": password}
         
         try:
-            status_code, headers, body = send_http_request(self.tracker_url, "POST", "/login", body_data=payload, auth_cookie=None)
+            status_code, headers, body = send_http_request(self.tracker, "POST", "/login", body_data=payload, auth_cookie=None)
 
             if status_code == 200:
                 response_headers = CaseInsensitiveDict()
@@ -183,16 +183,16 @@ class Peer:
                     if set_cookie and 'auth=true' in set_cookie:
                         self.auth_cookie = set_cookie.split(';')[0].strip()
                         self.logged_in = True
-                        print("Login successful, session cookie: {}".format(self.auth_cookie))
+                        print("Login successfully, session cookie: {}".format(self.auth_cookie))
                         return True
                     else:
-                        print("Login unsuccessful: auth cookie not found or invalid")
+                        print("Login unsuccessfully")
                         self.logged_in = False
                         return False
             else:
-                print("Login unsuccessful: status code {}".format(status_code))
-        except Exception:
-            print("Login to tracker unsuccessfully")
+                print("Login unsuccessfully: status code {}".format(status_code))
+        except Exception as e:
+            print("Login to tracker unsuccessfully: {}".format(e))
 
         self.logged_in = False
         return False
@@ -208,7 +208,7 @@ class Peer:
         }
         
         try:
-            status_code, headers, body = send_http_request(self.tracker_url, "POST", "/submit-info", body_data=payload, auth_cookie=self.auth_cookie)
+            status_code, headers, body = send_http_request(self.tracker, "POST", "/submit-info", body_data=payload, auth_cookie=self.auth_cookie)
             if status_code == 200:
                 print("Successfully registered to tracker")
                 return True
@@ -224,7 +224,7 @@ class Peer:
             return None
             
         try:
-            status_code, headers, body = send_http_request(self.tracker_url, "GET", "/get-list", body_data=None, auth_cookie=self.auth_cookie)
+            status_code, headers, body = send_http_request(self.tracker, "GET", "/get-list", body_data=None, auth_cookie=self.auth_cookie)
             
             if status_code == 200:
                 try:
@@ -237,8 +237,9 @@ class Peer:
                             if isinstance(peer, (list, tuple)) and len(peer) >= 2:
                                 peer_tuple_list.append((peer[0], int(peer[1])))
                         return peer_tuple_list
-                except json.JSONDecodeError:
-                    print("Failed to decode peer list JSON")
+                except json.JSONDecodeError as e:
+                    print("Failed to decode peer list JSON: {}".format(e))
+                    return None
             else:
                 print("Failed to get peer list: status code {}".format(status_code))
                 return None
@@ -314,7 +315,7 @@ if __name__ == "__main__":
     ui_queue = Queue()      
     api_thread = None
 
-    peer_instance = Peer(tracker_url=args.tracker, host='0.0.0.0', port=args.port, username=args.username, ui_queue=ui_queue)    
+    peer_instance = Peer(tracker=args.tracker, host='0.0.0.0', port=args.port, username=args.username, ui_queue=ui_queue)    
     
     try:
         peer_instance.start()

@@ -71,7 +71,7 @@ class HttpAdapter:
         elif req.path.startswith("/static/") or req.path.startswith("/css/") or req.path.startswith("/images/") or req.path.startswith("/js/"):
             response = resp.build_response(req)
         else:
-            response = resp.build_notfound()
+            response = resp.build_not_found()
         conn.sendall(response)
         conn.close()
         return

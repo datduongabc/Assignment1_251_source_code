@@ -13,35 +13,29 @@ document.title = `P2P Chat - ${USERNAME}`;
 messagesDiv.innerHTML = "";
 addMessage(`<strong>${USERNAME}</strong>`);
 
-// --- CHỌN KÊNH ---
+// --- SELECT CHANNEL ---
 channelListDiv.addEventListener("click", (e) => {
   if (e.target && e.target.classList.contains("channel")) {
     const newChannel = e.target.dataset.channel;
     if (newChannel !== currentChannel) {
-      // 1. Cập nhật giao diện
       document.querySelector(".channel.active")?.classList.remove("active");
       e.target.classList.add("active");
-      // 2. Xóa chấm thông báo
       e.target.classList.remove("new-message");
-      // 3. Cập nhật biến global
       currentChannel = newChannel;
       channelTitle.textContent = currentChannel;
-
-      // 4. Xóa tin nhắn cũ và thông báo chuyển kênh
       messagesDiv.innerHTML = "";
       addMessage(`Switched to channel <strong>${currentChannel}</strong>`);
     }
   }
 });
 
-// --- GỬI TIN NHẮN ---
-let isSending = false; // Prevent rapid fire sending
+// --- SEND MESSAGES ---
+let isSending = false;
 
 async function sendMessage() {
   const content = input.value.trim();
   if (!content || isSending) return;
 
-  // Lock sending để tránh duplicate
   isSending = true;
   input.value = "";
   input.disabled = true;
@@ -81,7 +75,7 @@ input.addEventListener("keydown", (e) => {
   }
 });
 
-// --- HIỂN THỊ TIN NHẮN ---
+// --- DISPLAY MESSAGES ---
 function addMessage(msg, sender = null, isOwn = false) {
   const time = new Date().toLocaleTimeString();
 
@@ -119,12 +113,11 @@ function addOtherMessage(msg, sender) {
   addMessage(msg, sender || "Unknown", false);
 }
 
-// --- NHẬN TIN NHẮN ---
+// --- RECEIVE MESSAGES ---
 const seenMessages = new Set();
 let lastPeerCount = -1;
 let isConnectionLost = false;
 
-// --- NHẬN TIN NHẮN ---
 async function pollMessages() {
   while (true) {
     try {
@@ -139,7 +132,6 @@ async function pollMessages() {
         const data = await response.json();
 
         if (data.type === "channel_peer_update") {
-          // Hiển thị peer count chung (không phân kênh)
           const peerCount = data.peer_count || 0;
           if (peerCount !== lastPeerCount) {
             lastPeerCount = peerCount;
@@ -163,7 +155,6 @@ async function pollMessages() {
           }
         }
       } else if (response.status !== 204) {
-        // Polling nhanh hơn khi không có tin nhắn
         await new Promise((r) => setTimeout(r, 100));
       }
     } catch (e) {
@@ -179,7 +170,7 @@ async function pollMessages() {
   }
 }
 
-// --- KHỞI TẠO ---
+// --- INITIALIZE ---
 setTimeout(async () => {
   try {
     const response = await fetch(`${API_BASE}/peers`);

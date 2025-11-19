@@ -5,7 +5,7 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-class PeerAPIHandler(BaseHTTPRequestHandler):    
+class API(BaseHTTPRequestHandler):    
     def get_peer_instance(self):
         return self.server.peer_instance
 
@@ -207,7 +207,6 @@ class PeerAPIHandler(BaseHTTPRequestHandler):
             else:
                 self.send_error(404)
         except Exception:
-            print("Error in POST")
             self.send_error(500)
 
 class PeerHttpServer(HTTPServer):
@@ -219,14 +218,12 @@ class PeerHttpServer(HTTPServer):
 def run_api_server(port, peer_instance, ui_queue):
     try:
         server_address = ('', port)
-        httpd = PeerHttpServer(server_address, PeerAPIHandler, peer_instance, ui_queue)
+        httpd = PeerHttpServer(server_address, API, peer_instance, ui_queue)
         httpd.timeout = 1
         print("Listening on port {}".format(port))
         httpd.serve_forever()
     except OSError as e:
         if e.errno == 48:
             print("Error: Port {} is already in use.".format(port))
-        else:
-            print("Network error")
     except Exception:
         print("Unexpected error")

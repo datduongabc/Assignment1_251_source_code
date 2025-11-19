@@ -131,13 +131,7 @@ async function pollMessages() {
       if (response.status === 200) {
         const data = await response.json();
 
-        if (data.type === "channel_peer_update") {
-          const peerCount = data.peer_count || 0;
-          if (peerCount !== lastPeerCount) {
-            lastPeerCount = peerCount;
-            addMessage(`Connected peers: ${peerCount}`);
-          }
-        } else if (data.type === "message") {
+        if (data.type === "message") {
           const msgId = `${data.sender}-${data.raw}`;
 
           if (data.text && !seenMessages.has(msgId)) {

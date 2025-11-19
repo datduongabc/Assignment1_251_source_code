@@ -6,12 +6,6 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class API(BaseHTTPRequestHandler):    
-    def get_peer_instance(self):
-        return self.server.peer_instance
-
-    def get_ui_queue(self):
-        return self.server.ui_queue
-
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -20,53 +14,37 @@ class API(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        peer_instance = self.get_peer_instance()
-        ui_queue = self.get_ui_queue()
+        peer_instance = self.server.peer_instance
+        ui_queue = self.server.ui_queue
 
         try:
             if self.path == '/messages':
-                try:
-                    message_text = ui_queue.get(timeout=2)
-                    
-                    if message_text.startswith("CHANNEL_PEER_UPDATE|"):
-                        parts = message_text.split("|")
-                        response = {
-                            'type': 'channel_peer_update',
-                            'channel': parts[1],
-                            'peer_count': int(parts[2]),
-                            'text': '{}: {} peers'.format(parts[1], parts[2]),
-                            'sender': 'System'
-                        }
-                    else:
-                        #channel|[User]: Content
-                        sender = "Anonymous"
-                        text = message_text
-                        channel = "#general"
-                        
-                        if '|[' in message_text and ']: ' in message_text:
-                            channel_part, rest = message_text.split('|[', 1)
-                            channel = channel_part
-                            if ']: ' in rest:
-                                sender_part, content_part = rest.split(']: ', 1)
-                                sender = sender_part
-                                text = content_part
-                        response = {
-                            'type': 'message',
-                            'text': text,
-                            'sender': sender,
-                            'channel': channel,
-                            'raw': message_text
-                        }
-                    
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/json')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()
-                    self.wfile.write(json.dumps(response).encode('utf-8'))
-                except Empty:
-                    self.send_response(204)
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()    
+                message_text = ui_queue.get(timeout=2)
+                
+                sender = "Anonymous"
+                text = message_text
+                channel = "#general"
+                
+                if '|[' in message_text and ']: ' in message_text:
+                    channel_part, rest = message_text.split('|[', 1)
+                    channel = channel_part
+                    if ']: ' in rest:
+                        sender_part, content_part = rest.split(']: ', 1)
+                        sender = sender_part
+                        text = content_part
+                response = {
+                    'type': 'message',
+                    'text': text,
+                    'sender': sender,
+                    'channel': channel,
+                    'raw': message_text
+                }
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode('utf-8'))
             elif self.path == '/channels':
                 # Channel listing
                 self.send_response(200)
@@ -113,9 +91,54 @@ class API(BaseHTTPRequestHandler):
         except Exception:
             self.send_error(500)
     
+    def do_POST(self):
+        peer_instance = self.server.peer_instance
+
+        try:
+            content_len = int(self.headers.get('Content-Length', 0))
+            post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+            
+            try:
+                data = json.loads(post_body.decode('utf-8'))
+            except json.JSONDecodeError:
+                data = {}
+            
+            if self.path == '/send' or self.path == '/broadcast-peer':
+                channel = data.get('channel', '#general')
+                message = data.get('message', '')
+                
+                if not message.strip():
+                    self.send_error(400, "Empty message")
+                    return
+                
+                if peer_instance:
+                    peer_instance.broadcast_message(message, channel)
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "ok"}).encode('utf-8'))    
+            elif self.path == '/join-channel':
+                channel = data.get('channel')
+                
+                if peer_instance and channel:
+                    peer_instance.current_channel = channel
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "ok"}).encode('utf-8'))
+                
+            else:
+                self.send_error(404)
+        except Exception:
+            self.send_error(500)
+    
     def serve_chat_html(self):
         try:
-            peer = self.get_peer_instance()
+            peer = self.server.peer_instance
             api_port = self.server.server_port
             username = peer.username if peer else "Anonymous"
 
@@ -164,51 +187,6 @@ class API(BaseHTTPRequestHandler):
         except Exception:
             self.send_error(404, "File Not Found")
 
-    def do_POST(self):
-        peer_instance = self.get_peer_instance()
-
-        try:
-            content_len = int(self.headers.get('Content-Length', 0))
-            post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
-            
-            try:
-                data = json.loads(post_body.decode('utf-8'))
-            except json.JSONDecodeError:
-                data = {}
-            
-            if self.path == '/send' or self.path == '/broadcast-peer':
-                channel = data.get('channel', '#general')
-                message = data.get('message', '')
-                
-                if not message.strip():
-                    self.send_error(400, "Empty message")
-                    return
-                
-                if peer_instance:
-                    peer_instance.broadcast_message(message, channel)
-                
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"status": "ok"}).encode('utf-8'))    
-            elif self.path == '/join-channel':
-                channel = data.get('channel')
-                
-                if peer_instance and channel:
-                    peer_instance.current_channel = channel
-                
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"status": "ok"}).encode('utf-8'))
-                
-            else:
-                self.send_error(404)
-        except Exception:
-            self.send_error(500)
-
 class PeerHttpServer(HTTPServer):
     def __init__(self, server_address, RequestHandlerClass, peer_instance, ui_queue):
         self.peer_instance = peer_instance
@@ -217,7 +195,7 @@ class PeerHttpServer(HTTPServer):
 
 def run_api_server(port, peer_instance, ui_queue):
     try:
-        server_address = ('', port)
+        server_address = ('0.0.0.0', port)
         httpd = PeerHttpServer(server_address, API, peer_instance, ui_queue)
         httpd.timeout = 1
         print("Listening on port {}".format(port))

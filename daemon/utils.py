@@ -95,6 +95,5 @@ def send_http_request(tracker, method, path, body_data=None, auth_cookie=None):
         except (IndexError, ValueError, AttributeError):
             status_code = 500
         return status_code, header_resp_str, body_content_bytes
-
     except Exception:
         return 500, "", b""

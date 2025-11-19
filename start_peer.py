@@ -142,29 +142,6 @@ class Peer:
             except:
                 pass
 
-    def send_to_peer(self, target_peer, message_content, channel_id='#general'):
-        message_packet = {
-            "type": "message",
-            "channels": channel_id,
-            "username": self.username,
-            "content": message_content.strip(),
-            "timestamp": time.time()
-        }
-        
-        message_json = json.dumps(message_packet) + '\n'
-        bytes_packet = message_json.encode('utf-8')
-        
-        with self.connections_lock:
-            target_conn = self.peers.get(target_peer)
-            
-            if target_conn:
-                try:
-                    target_conn.sendall(bytes_packet)
-                    return True
-                except Exception:
-                    return False
-        return False
-
     def login_to_tracker(self, username, password):
         payload = {"username": username, "password": password}
         
@@ -222,7 +199,7 @@ class Peer:
     def get_peer_list(self):
         if not self.logged_in:
             return None
-            
+
         try:
             status_code, headers, body = send_http_request(self.tracker, "GET", "/get-list", body_data=None, auth_cookie=self.auth_cookie)
             
@@ -247,6 +224,29 @@ class Peer:
             print("Failed to get peer list")
             return None
         
+    def send_to_peer(self, target_peer, message_content, channel_id='#general'):
+        message_packet = {
+            "type": "message",
+            "channels": channel_id,
+            "username": self.username,
+            "content": message_content.strip(),
+            "timestamp": time.time()
+        }
+        
+        message_json = json.dumps(message_packet) + '\n'
+        bytes_packet = message_json.encode('utf-8')
+        
+        with self.connections_lock:
+            target_conn = self.peers.get(target_peer)
+            
+            if target_conn:
+                try:
+                    target_conn.sendall(bytes_packet)
+                    return True
+                except Exception:
+                    return False
+        return False
+    
     def broadcast_message(self, message_content, channel_id='#general'):
         if not message_content.strip():
             return
